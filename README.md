@@ -1,1 +1,1 @@
-# sigai-music-generation
+# SigAI Music Generation
