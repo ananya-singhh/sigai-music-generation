@@ -22,26 +22,39 @@ def main():
     print(sample_file)
     
     pm = pretty_midi.PrettyMIDI(sample_file)
-    make_generator_model() #call to make_generator_model which makes the GANS
+    discriminator = define_discriminator() #call to define_discriminator which makes the discriminator
+    generator = define_generator(network_input=sample_file, batch_data=filenames)
     
 def define_discriminator(in_shape = (106,106,1)):
     #got this from a tutorial - we can change the parameters/what functions to add once we know more
-    model = Sequential()
-    model.add(Conv2D(64, (3,3), strides=(2, 2), padding='same', input_shape=in_shape))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3,3), strides=(2, 2), padding='same'))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dropout(0.5))
-    model.add(Flatten())
-    model.add(BatchNormalization())
-    model.add(Dense(1, activation='sigmoid'))
-    opt = Adam(lr=0.0002, beta_1=0.5)
-    model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Conv2D(64, (3,3), strides=(2, 2), padding='same', input_shape=in_shape))
+    model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+    model.add(tf.keras.layers.Dropout(0.5))
+    model.add(tf.keras.layers.Conv2D(64, (3,3), strides=(2, 2), padding='same'))
+    model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+    model.add(tf.keras.layers.Dropout(0.5))
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    #opt = tf.keras.optimizers.Adam(learning_rate=0.0002, beta_1=0.5)
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.summary()
     return model
 
-def make_generator_model():
+def define_generator(network_input, batch_data):
     model = tf.keras.Sequential() # makes a sequential model using keras
+    model.add(tf.compat.v1.keras.layers.CuDNNLSTM(512, return_sequences=True))
+    model.add(tf.keras.layers.Dropout(0.5))
+    model.add(tf.keras.layers.Bidirectional(tf.compat.v1.keras.layers.CuDNNLSTM(512)))
+    model.add(tf.keras.layers.Dropout(0.5))
+    model.add(tf.keras.layers.Bidirectional(tf.compat.v1.keras.layers.CuDNNLSTM(512)))
+    model.add(tf.keras.layers.Dense(512))
+    model.add(tf.keras.layers.Activation('softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    #model.build(input_shape=network_input.shape[1])
+    model.summary()
+    return model
 
 
 if __name__ == "__main__":
